@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import os
 import webbrowser
 import platform
@@ -6,7 +7,7 @@ from .php_installer import (
     download_and_install_php,
     is_laragon_installed,
     detect_installed_php_versions,
-    SUPPORTED_PHP_VERSIONS,
+    get_latest_php_ver,
 )
 
 
@@ -35,7 +36,7 @@ def handle_choice(choice, os_type):
 
         if choice == 12:
             print("👋🏻 Keluar dari program!")
-            return
+            sys.exit(1)
 
         if choice == 11:
             for i in range(1, 10):
@@ -211,8 +212,9 @@ def install_php_laragon(os_type):
     detect_installed_php_versions()
 
     print("\nVersi yang tersedia untuk di unduh: ")
-    for key, val in SUPPORTED_PHP_VERSIONS.items():
-        print(f"{key} -> PHP {val}")
+    latest_versions = get_latest_php_ver()
+    for major, (full, vs) in latest_versions.items():
+        print(f"{major} -> PHP {full} (VS{vs})")
 
     version = input("\nMasukkan versi PHP yang ingin di unduh (misal 8.3).").strip()
     download_and_install_php(version)
