@@ -2,7 +2,6 @@ import os
 import urllib.request
 import zipfile
 import requests
-import shutil
 import sys
 import glob
 from bs4 import BeautifulSoup
