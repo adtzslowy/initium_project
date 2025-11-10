@@ -31,7 +31,7 @@
 
 ---
 
-## Requirement macOS 13 or later 🍎
+## Requirement macOS 14 or later 🍎
 Homebrew
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
