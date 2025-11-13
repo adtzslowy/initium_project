@@ -4,12 +4,32 @@ import os
 import webbrowser
 import platform
 from .php_installer import (
-    download_and_install_php,
+    get_latest_php_version,
+    get_local_php_version,
     is_laragon_installed,
-    detect_installed_php_versions,
-    get_latest_php_ver,
+    download_php,
 )
 
+# Silent install
+def silent_install_windows(installer_path, silent_args=None):
+    """
+    Menjalankan installer windows secara silent tanpa GUI
+    """
+    if not os.path.exists(installer_path):
+        print(f"❌ File installer tidak ditemukan: {installer_path}")
+        return False
+
+    try:
+        cmd = [installer_path]
+        if silent_args:
+            cmd.extend(silent_args.split())
+        print(f"🚀 Menjalankan installer silent: {' '.join(cmd)}")
+        subprocess.run(cmd, check=True)
+        print("✅ Installasi selesai")
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"⚠️ Gagal menjalankan installer silent: {e}")
+        return False
 
 def handle_choice(choice, os_type):
     tools = {
@@ -162,8 +182,6 @@ def install_laragon(os_type):
         print("❌ Laragon hanya tersedia di Windows")
         return
 
-    print("⬇️ Mengunduh dan menginstall Laragon..")
-
     installer_url = (
         "https://github.com/leokhoa/laragon/releases/download/6.0.0/laragon-wamp.exe"
     )
@@ -171,12 +189,12 @@ def install_laragon(os_type):
 
     try:
         import urllib.request
-
+        print("⬇️ Mengunduh Laragon...")
         urllib.request.urlretrieve(installer_url, installer_name)
         print("✅ Laragon berhasil di unduh")
 
-        print("🚀 Membuka installer Laragon...")
-        os.startfile(installer_name)
+        print("🚀 Menginstall laragon...")
+        silent_install_windows(installer_name, "/S")
 
     except Exception as e:
         print(f"❌ Gagal menginstall Laragon: {e}")
@@ -209,15 +227,23 @@ def install_php_laragon(os_type):
         print("❌ Laragon tidak ditemukan di sistem, harap install terlebih dahulu.")
 
     print("\n--- PHP Installer Untuk Laragon ---")
-    detect_installed_php_versions()
-
-    print("\nVersi yang tersedia untuk di unduh: ")
-    latest_versions = get_latest_php_ver()
+    installed_versions = get_local_php_version()
+    latest_versions = get_latest_php_version()
+    
     for major, (full, vs) in latest_versions.items():
-        print(f"{major} -> PHP {full} (VS{vs})")
+        print(f"{major} ͢ PHP {full} ({vs})")
+    
+    latest_major = max(latest_versions.keys())
+    latest_full, _ = latest_versions[latest_major]
 
-    version = input("\nMasukkan versi PHP yang ingin di unduh (misal 8.3).").strip()
-    download_and_install_php(version)
+    print(f"\n🌐 Versi PHP terbaru untuk {latest_major} adalah {latest_full}")
+
+    if any(latest_full in v for v in installed_versions):
+        print(f"✅ PHP {latest_full} sudah terpasang")
+        return
+    
+    print(f"⬇️ Mengunduh dan memasang php {latest_full}")
+    download_php(latest_major)
 
 
 def install_composer(os_type):

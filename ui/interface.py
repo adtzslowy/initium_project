@@ -16,7 +16,7 @@ def show_logo():
         Panel.fit(
             f"[cyan]{ascii_logo}[/cyan]",
             title="[bold green]INITIUM CLI INSTALLER",
-            subtitle="github.com/aditslowly/initium",
+            subtitle="github.com/aditslowly/initium_project",
             border_style="bright_blue",
         )
     )

@@ -3,44 +3,59 @@ import urllib.request
 import zipfile
 import requests
 import sys
-import glob
+from io import BytesIO
 from bs4 import BeautifulSoup
+import ctypes
 import re
 
-LARAGON_PHP_DIR = "C:\\laragon\\bin\\php"
+LARAGON_PHP_DIR = None
 
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAdmin()
+    except:
+        return False
 
-def is_laragon_installed():
-    return os.path.exists(LARAGON_PHP_DIR)
-
-def detect_installed_php_versions():
-    if not os.path.exists(LARAGON_PHP_DIR):
-        print("❌ Laragon belum terpasang atau folder php tidak ditemukan")
-        return []
-
-    versions = [
-        f for f in os.listdir(LARAGON_PHP_DIR)
-        if os.path.isdir(os.path.join(LARAGON_PHP_DIR, f)) and f.startswith("php")
+def detect_laragon_path():
+    possible_paths = [
+        r"C:\laragon",
+        r"D:\laragon"
     ]
-    print("\n📦 Versi PHP yang terdeteksi: ")
-    for v in versions:
-        print(f" - {v}")
-    return versions
 
-def get_latest_php_ver():
-    url = "https://windows.php.net/download"
+    for path in possible_paths:
+        if os.path.exists(path):
+            print(f"Laragon ditemukan di: {path}")
+            return path
+    print("[-] Laragon tidak ditemukan di Disk C: dan D:")
+    return None
+
+def get_latest_php_version():
+    # print("[*] Mengecek versi PHP terbaru dari windows.php.net")
+    # url = "https://www.windows.php.net/downloads/release/"
+    # r = requests.get(url)
+    # soup = BeautifulSoup(r.text, "html.parser")
+
+    # match = re.search(r"PHP (\d+\.\d+\.\d+)", soup.text)
+    # if match:
+    #     latest_version = match.group(1)
+    #     print(f"[✓] Versi PHP terbaru: {latest_version}")
+    #     return latest_version
+    # print("[-] Gagal mendapatkan versi PHP terbaru")
+    # return None
+
+    url = "https://windows.php.net/downloads/release/"
     r = requests.get(url)
     if r.status_code != 200:
         print("❌ Gagal mengakses situs PHP Windows")
         return {}
-
+    
     soup = BeautifulSoup(r.text, "html.parser")
     versions = {}
 
     for a in soup.find_all("a", href=True):
-        href = a['href']
-        if "x64" in href and href.endswith("*.zip"):
-            m = re.search(r"php-(\d+\.\d+\.\d+)-Win32-vs(\d+)-x64.zip")
+        href = a["href"]
+        if "x64" in href and href.endswith(".zip"):
+            m = re.search(r"php-(\d+\.\d+\.\d+)-Win32-(vs\d+)-x64\.zip", href)
             if m:
                 full_ver, vs_ver = m.groups()
                 major = ".".join(full_ver.split(".")[:2])
@@ -49,47 +64,53 @@ def get_latest_php_ver():
 
     return versions
 
-def download_and_install_php(major_version: str):
-    latest_versions = get_latest_php_ver();
-    if major_version not in latest_versions:
-        print(f"⚠️ Versi {major_version} tidak ditemukan disitus resmi")
-        return
+def get_local_php_version(laragon_path):
+    php_dir = os.path.join(laragon_path, "bin", "php")
+    if not os.path.exists(php_dir):
+        return None
+    
+    dirs = [d for d in os.listdir(php_dir) if d.startswith("php")]
+    if not dirs:
+        return None
+    
+    versions = sorted(dirs, reverse=True)
+    latest_local = versions[0].replace("php-", "")
+    print(f"[✓] Versi PHP Lokal: {latest_local}")
+    return latest_local
 
-    full_version, vs_version = latest_versions[major_version]
-    install_dir = os.path.join(LARAGON_PHP_DIR, f"php-{full_version}")
-    filename = f"php-{full_version}.zip"
+def download_php(version, laragon_path):
+    print(f"[*] Mengunduh PHP {version} untuk windows")
+    major, minor, *_ = version.split(".")
+    major = int(major)
+    minor = int(minor)
 
-    if os.path.exists(install_dir):
-        print(f"! PHP {full_version} sudah terinstall di {install_dir}")
-        return
+    if major > 8 or (major == 8 and minor >= 4):
+        compiler = "vs17"
+    else:
+        compiler = "vs16"
 
-    url = f"https://windows.php.net/downloads/releases/php-{full_version}-Win32-vs{vs_version}-x64.zip"
-    print(f"⬇️ Mendownload PHP {full_version}")
-    try:
-        urllib.request.urlretrieve(url, filename)
-    except Exception as e:
-        print(f"Download Gagal: {e}")
-        return
 
-    print(f"📦 Mengekstrak file ke {install_dir}...")
-    try:
-        with zipfile.ZipFile(filename, "r") as zip_ref:
-            zip_ref.extractall(install_dir);
-        os.remove(filename)
-    except Exception as e:
-        print(f"❌ Gagal mengekstrak: {e}")
+    base_url = f"https://windows.php.net/downloads/releases/php-{version}-Win32-{compiler}-x64.zip"
+    print(f"[*] Menggunakan build: {compiler.upper()}")
 
-if __name__ == "__main__":
-    if not is_laragon_installed():
-        print('❌ Laragon tidak ter install!')
-        sys.exit(1)
+    r = requests.get(base_url, stream=True)
 
-    installed_versions = detect_installed_php_versions()
-    latest_version = get_latest_php_ver()
+    if r.status_code != 200:
+        print("[-] Gagal mengunduh file dari php.net, mungkin versi belum tersedia.")
+        print(f"[-] Coba cek URL manual: {base_url}")
+        return False
 
-    print("\n🌐 Versi PHP terbaru di situs resmi:")
-    for major, (full, vs) in latest_version.items():
-        print(f" - {major}: {full} (VS{vs})")
+    php_dir = os.path.join(laragon_path, "bin", "php", f"php-{version}")
+    os.makedirs(php_dir, exist_ok=True)
 
-    major_to_install = 8.4
-    download_and_install_php(major_to_install)
+    with zipfile.ZipFile(BytesIO(r.content)) as zf:
+        zf.extractall(php_dir)
+
+    print(f"[✓] PHP {version} berhasil diinstal di: {php_dir}")
+    return True
+
+def is_laragon_installed():
+    laragon_path = detect_laragon_path()
+    if laragon_path:
+        return True
+    return False
