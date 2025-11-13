@@ -8,6 +8,7 @@ from .php_installer import (
     get_local_php_version,
     is_laragon_installed,
     download_php,
+    detect_laragon_path,
 )
 
 # Silent install
@@ -227,7 +228,8 @@ def install_php_laragon(os_type):
         print("❌ Laragon tidak ditemukan di sistem, harap install terlebih dahulu.")
 
     print("\n--- PHP Installer Untuk Laragon ---")
-    installed_versions = get_local_php_version()
+    laragon_path = detect_laragon_path()
+    installed_versions = get_local_php_version(laragon_path)
     latest_versions = get_latest_php_version()
     
     for major, (full, vs) in latest_versions.items():
@@ -238,12 +240,16 @@ def install_php_laragon(os_type):
 
     print(f"\n🌐 Versi PHP terbaru untuk {latest_major} adalah {latest_full}")
 
-    if any(latest_full in v for v in installed_versions):
-        print(f"✅ PHP {latest_full} sudah terpasang")
+    if installed_versions and latest_full in installed_versions:
+        print(f"✅ PHP {latest_full} sudah terpasang.")
         return
     
-    print(f"⬇️ Mengunduh dan memasang php {latest_full}")
-    download_php(latest_major)
+    print(f"⬇️ Mengunduh dan memasang PHP {latest_full} ...")
+    success = download_php(latest_full, laragon_path)
+    if success:
+         print(f"🎉 PHP {latest_full} berhasil diinstal ke {laragon_path}\\bin\\php")
+    else:
+        print(f"❌ Gagal menginstal PHP {latest_full}.")
 
 
 def install_composer(os_type):
