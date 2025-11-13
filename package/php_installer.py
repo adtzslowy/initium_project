@@ -65,6 +65,7 @@ def get_latest_php_version():
     return versions
 
 def get_local_php_version(laragon_path):
+    laragon_path = detect_laragon_path()
     php_dir = os.path.join(laragon_path, "bin", "php")
     if not os.path.exists(php_dir):
         return None
