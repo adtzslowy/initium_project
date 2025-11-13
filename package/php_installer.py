@@ -43,7 +43,7 @@ def get_latest_php_version():
     # print("[-] Gagal mendapatkan versi PHP terbaru")
     # return None
 
-    url = "https://windows.php.net/downloads/release/"
+    url = "https://windows.php.net/downloads/releases/"
     r = requests.get(url)
     if r.status_code != 200:
         print("❌ Gagal mengakses situs PHP Windows")
