@@ -64,8 +64,13 @@ def get_latest_php_version():
 
     return versions
 
-def get_local_php_version(laragon_path):
-    laragon_path = detect_laragon_path()
+def get_local_php_version(laragon_path=None):
+    if laragon_path is None:
+        laragon_path = detect_laragon_path()
+    if not laragon_path:
+        print("[-] Laragon tidak bisa ditemukan")
+        return None
+    
     php_dir = os.path.join(laragon_path, "bin", "php")
     if not os.path.exists(php_dir):
         return None
@@ -73,7 +78,7 @@ def get_local_php_version(laragon_path):
     dirs = [d for d in os.listdir(php_dir) if d.startswith("php")]
     if not dirs:
         return None
-    
+
     versions = sorted(dirs, reverse=True)
     latest_local = versions[0].replace("php-", "")
     print(f"[✓] Versi PHP Lokal: {latest_local}")
