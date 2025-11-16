@@ -3,7 +3,7 @@ name: Build Initium CLI
 on:
   push:
     tags:
-      - 'v*'  # Jalan saat push tag, contoh: v1.0.2
+      - 'v*'
 
 jobs:
   build-windows:
@@ -16,9 +16,9 @@ jobs:
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"   # versi stabil yang support pyfiglet
+          python-version: "3.11"
 
-      - name: 📂 Debug – List Files (optional, tapi disarankan)
+      - name: 📂 Debug – List Files
         run: |
           echo "List files in repository root:"
           dir
@@ -26,26 +26,23 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
-
-          # Install semua dari requirements.txt
           pip install -r requirements.txt
-
           pip install pyfiglet
-
           pip install pyinstaller
-
           pip list
 
-       - name: 🔍 Get pyfiglet fonts path
+      - name: 🔍 Get pyfiglet fonts path
         id: get-fonts
         shell: pwsh
         run: |
-          $script = @"import os import pyfiglet print(os.path.join(os.path.dirname(pyfiglet.__file__), "fonts"), end="") "@
-
+          $script = @"
+import os
+import pyfiglet
+print(os.path.join(os.path.dirname(pyfiglet.__file__), 'fonts'), end="")
+"@
           $fontPath = python -c $script
           echo "FONT_PATH=$fontPath" >> $env:GITHUB_ENV
           echo "Detected FONT_PATH=$fontPath"
-
 
       - name: 🏗️ Build executable with PyInstaller
         run: |
