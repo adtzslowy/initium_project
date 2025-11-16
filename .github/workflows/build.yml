@@ -3,7 +3,7 @@ name: Build Initium CLI
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*'  # Jalan saat push tag, contoh: v1.0.2
 
 jobs:
   build-windows:
@@ -16,23 +16,41 @@ jobs:
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.11"   # versi stabil yang support pyfiglet
+
+      - name: 📂 Debug – List Files (optional, tapi disarankan)
+        run: |
+          echo "List files in repository root:"
+          dir
 
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
+
+          # Install semua dari requirements.txt
           pip install -r requirements.txt
+
+          pip install pyfiglet
+
           pip install pyinstaller
+
+          pip list
 
       - name: 🔍 Get pyfiglet fonts path
         id: get-fonts
+        shell: pwsh
         run: |
-          $fontPath = python -c "import os, pyfiglet; print(os.path.join(os.path.dirname(pyfiglet.__file__), 'fonts'))"
+          $fontPath = python - <<EOF import os, pyfiglet print(os.path.join(os.path.dirname(pyfiglet.__file__), "fonts"), end="") EOF
           echo "FONT_PATH=$fontPath" >> $env:GITHUB_ENV
+          echo "Detected FONT_PATH: $fontPath"
 
       - name: 🏗️ Build executable with PyInstaller
         run: |
-          pyinstaller --onefile --name initium --add-data "$env:FONT_PATH;pyfiglet/fonts" --hidden-import=requests --hidden-import=bs4 main.py
+          pyinstaller --onefile --name initium `
+            --add-data "$env:FONT_PATH;pyfiglet/fonts" `
+            --hidden-import=requests `
+            --hidden-import=bs4 `
+            main.py
 
       - name: 🚀 Upload executable as artifact
         uses: actions/upload-artifact@v4
