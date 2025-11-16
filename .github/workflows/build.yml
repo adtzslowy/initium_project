@@ -1,28 +1,22 @@
 name: Build Initium CLI
-
 on:
   push:
     tags:
       - 'v*'
-
 jobs:
   build-windows:
     runs-on: windows-latest
-
     steps:
       - name: 🛒 Checkout repository
         uses: actions/checkout@v3
-
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: 📂 Debug – List Files
         run: |
           echo "List files in repository root:"
           dir
-
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -30,7 +24,6 @@ jobs:
           pip install pyfiglet
           pip install pyinstaller
           pip list
-
       - name: 🔍 Get pyfiglet fonts path
         id: get-fonts
         shell: pwsh
@@ -38,15 +31,10 @@ jobs:
             $fontPath = python -c "import os, pyfiglet; print(os.path.join(os.path.dirname(pyfiglet.__file__), 'fonts'))"
             echo "FONT_PATH=$fontPath" >> $env:GITHUB_ENV
             echo "Detected FONT_PATH=$fontPath"
-
       - name: 🏗️ Build executable with PyInstaller
+        shell: pwsh
         run: |
-          pyinstaller --onefile --name initium`
-            --add-data "FONT_PATH;pyfiglet/fonts"`
-            --hidden-import=requests`
-            --hidden-import=bs4`
-            main.py
-
+          pyinstaller --onefile --name initium --add-data "$env:FONT_PATH;pyfiglet/fonts" --hidden-import=requests --hidden-import=bs4 main.py
       - name: 🚀 Upload executable as artifact
         uses: actions/upload-artifact@v4
         with:
