@@ -235,12 +235,12 @@ def install_docker(os_type):
 
 
 def install_php_laragon(os_type):
-    if os_type != "Windows":
-        print("❌ Fitur ini hanya tersedia di Windows.")
-        return
+    # if os_type != "Windows":
+    #     print("❌ Fitur ini hanya tersedia di Windows.")
+    #     return
 
-    if not is_laragon_installed():
-        print("❌ Laragon tidak ditemukan di sistem, harap install terlebih dahulu.")
+    # if not is_laragon_installed():
+    #     print("❌ Laragon tidak ditemukan di sistem, harap install terlebih dahulu.")
 
     print("\n--- PHP Installer Untuk Laragon ---")
     laragon_path = detect_laragon_path()

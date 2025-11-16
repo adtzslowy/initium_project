@@ -7,13 +7,99 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 import ctypes
 import re
+import winreg
+import subprocess
 
 LARAGON_PHP_DIR = None
+
+VCREDITS_URLS = {
+    "vs16": "https://aka.ms/vs/16/release/vc_redist.x64.exe",
+    "VS17": "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+}
 
 def is_admin():
     try:
         return ctypes.windll.shell32.IsUserAdmin()
     except:
+        return False
+
+
+def check_vcredist_installed(version="vs17"):
+    try:
+        registry_path = [
+            r"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64",
+            r"SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+        ]
+
+        for path in registry_path:
+            try:
+                key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path)
+                installed, _ = winreg.QueryValueEx(key, "Installed")
+                major, _ = winreg.QueryValueEx(key, "Major")
+                minor, _ = winreg.QueryValueEx(key, "Minor")
+                winreg.CloseKey(key)
+
+                if installed == 1:
+                    if version == "vs17" and major >= 14 and minor >= 30:
+                        return True
+                    elif version == "vs16" and major >= 14 and minor >= 20:
+                        return True
+            except FileNotFoundError:
+                continue
+        return False
+    except Exception as e:
+        print(f"[-] Gagal memeriksa installasi vcredist: {e}")
+        return False
+
+def download_and_install_vcredist(version="vs17"):
+    if not is_admin():
+        print("❌ Memerlukan hak administrator untuk install VC++ Redistributable")
+        print("💡 Jalankan program sebagai Administrator")
+        return False
+
+    url = VCREDITS_URLS.get(version)
+    if not url:
+        print(f"[-] Versi vcredist {version} tidak ditemukan/dikenali")
+        return False
+    print(f"[*] Mengunduh dan menginstall VC++ Redistributable version {version}...")
+
+    try:
+        temp_file = os.path.join(os.environ['TEMP'], f"vs_redist_{version}.exe")
+
+        response = requests.get(url, stream=True)
+        total_size = int(response.headers.get('content-length', 0))
+
+        with open(temp_file, 'wb') as f:
+            if total_size:
+                downloaded = 0
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    percent = (downloaded / total_size) * 100
+                    print(f"\r[+] Mengunduh... {percent:.2f}%", end='')
+            else:
+                f.write(response.content)
+
+        print(f"✅ Download selesai.")
+        print(f"[*] Menginstall VC++ Redistributable...")
+
+        result = subprocess.run(
+            [temp_file, '/install', "/quiet", '/norestart'],
+            capture_output=True,
+            text=tuple
+        )
+
+        if result.returncode == 0 or result.returncode == 3010:
+            print(f"[✓] VC++ Redistributable version {version} berhasil diinstall.")
+            if result.returncode == 3010:
+                print("⚠️ Restart komputer mungkin diperlukan")
+            os.remove(temp_file)
+            return True
+        else:
+            print(f"[-] Gagal menginstall VC++ Redistributable. Kode keluar: {result.returncode}")
+            return False
+    except Exception as e:
+        print(f"❌ Error saat install VC++ Redistributable: {e}")
         return False
 
 def detect_laragon_path():
@@ -48,7 +134,7 @@ def get_latest_php_version():
     if r.status_code != 200:
         print("❌ Gagal mengakses situs PHP Windows")
         return {}
-    
+
     soup = BeautifulSoup(r.text, "html.parser")
     versions = {}
 
@@ -70,11 +156,11 @@ def get_local_php_version(laragon_path=None):
     if not laragon_path:
         print("[-] Laragon tidak bisa ditemukan")
         return None
-    
+
     php_dir = os.path.join(laragon_path, "bin", "php")
     if not os.path.exists(php_dir):
         return None
-    
+
     dirs = [d for d in os.listdir(php_dir) if d.startswith("php")]
     if not dirs:
         return None
