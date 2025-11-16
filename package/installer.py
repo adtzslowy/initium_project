@@ -2,6 +2,7 @@ import subprocess
 import sys
 import os
 import webbrowser
+import threading
 import platform
 from .php_installer import (
     get_latest_php_version,
@@ -10,27 +11,34 @@ from .php_installer import (
     download_php,
     detect_laragon_path,
 )
+from utils.progress import run_progress_bar
+from utils.internet import is_winget_available
+from package.updater import self_update
+import asyncio
 
-# Silent install
-def silent_install_windows(installer_path, silent_args=None):
-    """
-    Menjalankan installer windows secara silent tanpa GUI
-    """
+def silent_install_windows(installer_path, silent_args="/S"):
     if not os.path.exists(installer_path):
         print(f"❌ File installer tidak ditemukan: {installer_path}")
         return False
 
+    cmd = f"{installer_path} {silent_args}"
     try:
-        cmd = [installer_path]
-        if silent_args:
-            cmd.extend(silent_args.split())
-        print(f"🚀 Menjalankan installer silent: {' '.join(cmd)}")
-        subprocess.run(cmd, check=True)
+        subprocess.run(["powershell", "-Command", f"Start-Process cmd -ArgumentList '/c {cmd}' -Verb RunAs"], check=True)
         print("✅ Installasi selesai")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"⚠️ Gagal menjalankan installer silent: {e}")
+        print(f"⚠️ Gagal menjalankan installer: {e}")
         return False
+
+def run_as_admin(cmd):
+    try:
+        subprocess.run(
+            ["powershell", "-Command", f"Start-Process cmd -ArgumentList '/c {cmd}' -Verb RunAs"],
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Gagal menjalankan: {e}")
+
 
 def handle_choice(choice, os_type):
     tools = {
@@ -44,7 +52,7 @@ def handle_choice(choice, os_type):
         8: {"name": "Docker Desktop", "install": install_docker},
         9: {"name": "PHP untuk laragon", "install": install_php_laragon},
         10: {"name": "Composer", "install": install_composer},
-        11: {"name": "Install Semua", "install": None},
+        11: {"name": "Update Initium", "install": None},
         12: {"name": "Keluar", "install": None},
     }
 
@@ -55,16 +63,13 @@ def handle_choice(choice, os_type):
             print("❌ Winget tidak tersedia disistem, akan menggunakan fallback URL")
             return
 
+        if choice == 11:
+            asyncio.run(self_update())
+            return
+
         if choice == 12:
             print("👋🏻 Keluar dari program!")
             sys.exit(1)
-
-        if choice == 11:
-            for i in range(1, 10):
-                print(f"🔧 Menginstall {tools[i]['name']}...")
-                tools[i]["install"](os_type)
-            print("\n✅ Semua tools berhasil diproses")
-            return
 
         selected = tools.get(choice)
         if not selected:
@@ -78,48 +83,61 @@ def handle_choice(choice, os_type):
         print(f"⚠️ Error: {e}")
 
 
-# === DETEKSI WINGET HELPER ===
-def is_winget_available():
-    return (
-        subprocess.call(
-            ["where", "winget"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-        == 0
-    )
-
-
 def winget_install(package_id, fallback_url=None):
     if not is_winget_available():
         if fallback_url:
             print(f"🔗 Membuka Fallback URL untuk {package_id}")
             open_url(fallback_url)
         else:
-            print("❌ Winget dan fallback URL tidak tersedia untuk {package_id}")
+            print(f"❌ Winget tidak tersedia dan tidak ada fallback URL untuk {package_id}")
         return
 
+    cmd = (
+        f"winget install --id={package_id}",
+        f"--source winget",
+        f"--silent",
+        f"--accept-package-agreements",
+        f"--accept-source-agreements",
+        f"-e",
+    )
+
+    print(f"\n🚀 Sedang menginstall: {package_id}")
+
+    stop_event = threading.Event()
+    progress_thread = threading.Thread(
+        target=run_progress_bar, args=(stop_event, f"Menginstall {package_id}...")
+    )
+    progress_thread.start()
+
     try:
-        subprocess.run(
+        process = subprocess.run(
             [
-                "winget",
-                "install",
-                "--id",
-                package_id,
-                "--source",
-                "winget",
-                "--silent",
-                "--accept-package-agreements",
-                "--accept-source-agreements",
-                "-e",
+                "powershell",
+                "-Command",
+                f"Start-Process cmd -ArgumentList '/c {cmd}' -Verb RunAs"
             ],
-            check=True,
+            check=True
         )
+
     except subprocess.CalledProcessError:
-        print(f"⚠️ Winget gagal menemukan atau menginstall {package_id}")
+        stop_event.set()
+        progress_thread.join()
+
+        print(f"\n⚠️ Winget gagal menginstall {package_id}")
         if fallback_url:
+            print(f"🔗 Membuka fallback URL...")
             open_url(fallback_url)
+        return
+
+    stop_event.set()
+    progress_thread.join()
+
+    print(f"\n✅ {package_id} berhasil diinstall!")
 
 
-# === FUNGSI PEMBANTU ===
+
+
+
 def open_url(url):
     try:
         system = platform.system()
@@ -178,27 +196,24 @@ def install_xampp(os_type):
     open_url("https://www.apachefriends.org/index.html")
 
 
+
 def install_laragon(os_type):
+
     if os_type != "Windows":
-        print("❌ Laragon hanya tersedia di Windows")
+        print("❌ Laragon hanya tersedia di Windows.")
         return
 
-    installer_url = (
-        "https://github.com/leokhoa/laragon/releases/download/6.0.0/laragon-wamp.exe"
-    )
     installer_name = "laragon-wamp.exe"
+    installer_url = "https://github.com/leokhoa/laragon/releases/download/6.0.0/laragon-wamp.exe"
 
-    try:
-        import urllib.request
-        print("⬇️ Mengunduh Laragon...")
-        urllib.request.urlretrieve(installer_url, installer_name)
-        print("✅ Laragon berhasil di unduh")
+    import urllib.request
+    print(f"⬇️ Mengunduh {installer_name} ...")
+    urllib.request.urlretrieve(installer_url, installer_name)
+    print(f"✅ {installer_name} berhasil diunduh!")
 
-        print("🚀 Menginstall laragon...")
-        silent_install_windows(installer_name, "/S")
+    print(f"🚀 Menginstall {installer_name} ...")
+    silent_install_windows(installer_name, "/S")
 
-    except Exception as e:
-        print(f"❌ Gagal menginstall Laragon: {e}")
 
 
 def install_postman(os_type):
@@ -231,10 +246,10 @@ def install_php_laragon(os_type):
     laragon_path = detect_laragon_path()
     installed_versions = get_local_php_version(laragon_path)
     latest_versions = get_latest_php_version()
-    
+
     for major, (full, vs) in latest_versions.items():
         print(f"{major} ͢ PHP {full} ({vs})")
-    
+
     latest_major = max(latest_versions.keys())
     latest_full, _ = latest_versions[latest_major]
 
@@ -243,7 +258,7 @@ def install_php_laragon(os_type):
     if installed_versions and latest_full in installed_versions:
         print(f"✅ PHP {latest_full} sudah terpasang.")
         return
-    
+
     print(f"⬇️ Mengunduh dan memasang PHP {latest_full} ...")
     success = download_php(latest_full, laragon_path)
     if success:

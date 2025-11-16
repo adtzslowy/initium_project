@@ -51,7 +51,7 @@ def show_ui():
         "Docker Desktop",
         "PHP Laragon",
         "Composer",
-        "Install Semua",
+        "Update Initium",
         "Keluar",
     ]
 
