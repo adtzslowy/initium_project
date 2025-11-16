@@ -35,14 +35,9 @@ jobs:
         id: get-fonts
         shell: pwsh
         run: |
-          $script = @"
-import os
-import pyfiglet
-print(os.path.join(os.path.dirname(pyfiglet.__file__), 'fonts'), end="")
-"@
-          $fontPath = python -c $script
-          echo "FONT_PATH=$fontPath" >> $env:GITHUB_ENV
-          echo "Detected FONT_PATH=$fontPath"
+            $fontPath = python -c "import os, pyfiglet; print(os.path.join(os.path.dirname(pyfiglet.__file__), 'fonts')"
+            echo \"FONT_PATH=$fontPath\" >> $env:GITHUB_ENV
+            echo "Detected FONT_PATH=$fontPath"
 
       - name: 🏗️ Build executable with PyInstaller
         run: |
