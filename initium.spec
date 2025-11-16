@@ -1,14 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
+import sys
+from PyInstaller.utils.hooks import collect_all, collect_submodules
+
+# Collect all modules from requests and its dependencies
+requests_datas, requests_binaries, requests_hiddenimports = collect_all('requests')
+bs4_datas, bs4_binaries, bs4_hiddenimports = collect_all('bs4')
+urllib3_datas, urllib3_binaries, urllib3_hiddenimports = collect_all('urllib3')
+certifi_datas, certifi_binaries, certifi_hiddenimports = collect_all('certifi')
 
 block_cipher = None
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=requests_binaries + bs4_binaries + urllib3_binaries + certifi_binaries,
     datas=[
         ('FONT_PATH_PLACEHOLDER', 'pyfiglet/fonts'),
-    ],
+    ] + requests_datas + bs4_datas + urllib3_datas + certifi_datas,
     hiddenimports=[
         'requests',
         'urllib3',
@@ -17,25 +25,8 @@ a = Analysis(
         'charset_normalizer',
         'idna',
         'soupsieve',
-        'requests.adapters',
-        'requests.auth',
-        'requests.cookies',
-        'requests.models',
-        'requests.sessions',
-        'requests.structures',
-        'requests.utils',
-        'urllib3.util',
-        'urllib3.util.retry',
-        'urllib3.util.ssl_',
-        'urllib3.contrib',
-        'urllib3.exceptions',
-        'urllib3.connection',
-        'urllib3.connectionpool',
-        'urllib3.response',
-        'bs4.builder',
-        'bs4.builder._htmlparser',
-        'bs4.builder._lxml',
-    ],
+        'pyfiglet',
+    ] + requests_hiddenimports + bs4_hiddenimports + urllib3_hiddenimports + certifi_hiddenimports + collect_submodules('requests') + collect_submodules('urllib3'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
