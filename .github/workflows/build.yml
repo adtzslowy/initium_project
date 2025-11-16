@@ -34,7 +34,10 @@ jobs:
       - name: 🏗️ Build executable with PyInstaller
         shell: pwsh
         run: |
-          pyinstaller --onefile --name initium --add-data "$env:FONT_PATH;pyfiglet/fonts" --hidden-import=requests --hidden-import=bs4 --hidden-import=urllib3 --hidden-import=charset_normalizer --hidden-import=certifi --hidden-import=idna --hidden-import=soupsieve --collect-all requests --collect-all bs4 main.py
+          # Update spec file dengan font path yang benar
+          (Get-Content initium.spec) -replace 'FONT_PATH_PLACEHOLDER', $env:FONT_PATH | Set-Content initium.spec
+          # Build menggunakan spec file
+          pyinstaller initium.spec
       - name: 🚀 Upload executable as artifact
         uses: actions/upload-artifact@v4
         with:
