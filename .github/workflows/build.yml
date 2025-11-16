@@ -36,13 +36,13 @@ jobs:
         shell: pwsh
         run: |
             $fontPath = python -c "import os, pyfiglet; print(os.path.join(os.path.dirname(pyfiglet.__file__), 'fonts'))"
-            echo \"FONT_PATH=$fontPath\" >> $env:GITHUB_ENV
+            echo "FONT_PATH=$fontPath" >> $env:GITHUB_ENV
             echo "Detected FONT_PATH=$fontPath"
 
       - name: 🏗️ Build executable with PyInstaller
         run: |
           pyinstaller --onefile --name initium `
-            --add-data "$env:FONT_PATH;pyfiglet/fonts" `
+            --add-data "$env:\FONT_PATH;pyfiglet/fonts" `
             --hidden-import=requests `
             --hidden-import=bs4 `
             main.py
