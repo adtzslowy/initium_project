@@ -12,7 +12,7 @@ import subprocess
 
 LARAGON_PHP_DIR = None
 
-VCREDITS_URLS = {
+VCREDIST_URLS = {
     "vs16": "https://aka.ms/vs/16/release/vc_redist.x64.exe",
     "VS17": "https://aka.ms/vs/17/release/vc_redist.x64.exe"
 }
@@ -57,7 +57,7 @@ def download_and_install_vcredist(version="vs17"):
         print("💡 Jalankan program sebagai Administrator")
         return False
 
-    url = VCREDITS_URLS.get(version)
+    url = VCREDIST_URLS.get(version)
     if not url:
         print(f"[-] Versi vcredist {version} tidak ditemukan/dikenali")
         return False
@@ -86,7 +86,7 @@ def download_and_install_vcredist(version="vs17"):
         result = subprocess.run(
             [temp_file, '/install', "/quiet", '/norestart'],
             capture_output=True,
-            text=tuple
+            text=True
         )
 
         if result.returncode == 0 or result.returncode == 3010:
