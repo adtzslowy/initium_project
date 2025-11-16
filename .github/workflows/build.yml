@@ -35,7 +35,10 @@ jobs:
         shell: pwsh
         run: |
           # Update spec file dengan font path yang benar
-          (Get-Content initium.spec) -replace 'FONT_PATH_PLACEHOLDER', $env:FONT_PATH | Set-Content initium.spec
+          $fontPath = $env:FONT_PATH -replace '\\', '\\\\'
+          $specContent = Get-Content initium.spec -Raw
+          $specContent = $specContent -replace 'FONT_PATH_PLACEHOLDER', $fontPath
+          $specContent | Set-Content initium.spec -NoNewline
           # Build menggunakan spec file
           pyinstaller initium.spec
       - name: 🚀 Upload executable as artifact
