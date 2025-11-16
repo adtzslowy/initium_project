@@ -41,10 +41,10 @@ jobs:
 
       - name: 🏗️ Build executable with PyInstaller
         run: |
-          pyinstaller --onefile --name initium `
-            --add-data "$env:FONT_PATH;pyfiglet/fonts" `
-            --hidden-import=requests `
-            --hidden-import=bs4 `
+          pyinstaller --onefile --name initium`
+            --add-data "$env:FONT_PATH;pyfiglet/fonts"`
+            --hidden-import=requests`
+            --hidden-import=bs4`
             main.py
 
       - name: 🚀 Upload executable as artifact
