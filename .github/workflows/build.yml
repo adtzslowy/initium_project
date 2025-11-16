@@ -3,7 +3,7 @@ name: Build Initium CLI
 on:
   push:
     tags:
-      - 'v*'  # Akan jalan saat push tag seperti v1.0.2
+      - 'v*'
 
 jobs:
   build-windows:
@@ -16,7 +16,7 @@ jobs:
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.11
+          python-version: "3.11"
 
       - name: 📦 Install dependencies
         run: |
@@ -32,7 +32,7 @@ jobs:
 
       - name: 🏗️ Build executable with PyInstaller
         run: |
-            pyinstaller --onefile --name initium --add-data "$env:FONT_PATH;pyfiglet/fonts" --hidden-import=requests --hidden-import=bs4 main.py
+          pyinstaller --onefile --name initium --add-data "$env:FONT_PATH;pyfiglet/fonts" --hidden-import=requests --hidden-import=bs4 main.py
 
       - name: 🚀 Upload executable as artifact
         uses: actions/upload-artifact@v4
