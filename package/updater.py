@@ -43,4 +43,3 @@ async def self_update():
 
     except Exception as e:
         console.print(Panel(f"[red]Gagal updaet: {e}[/red]", title="Error"))
-

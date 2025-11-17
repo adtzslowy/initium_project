@@ -6,7 +6,7 @@ def run_progress_bar(stop_event, title="Processing"):
     with Progress(
         TextColumn("{task.description}"),
         BarColumn(),
-        TextColumn("[progress.percentage]{task.persentage:>3.0f}%"),
+        TextColumn("{task.percentage:>3.0f}%"),
         TimeRemainingColumn(),
         expand=True
     ) as progress:
@@ -30,5 +30,5 @@ def run_progress_bar(stop_event, title="Processing"):
 
             progress.update(task, completed=percentage)
 
-        Progress.update(task, completed=100)
+        progress.update(task, completed=100)
         time.sleep(0.3)

@@ -9,6 +9,10 @@ import ctypes
 import re
 import winreg
 import subprocess
+from requests.adapters import HTTPAdapter, Retry
+import tempfile
+from tqdm import tqdm
+import zipfile
 
 LARAGON_PHP_DIR = None
 
@@ -19,37 +23,32 @@ VCREDIST_URLS = {
 
 def is_admin():
     try:
-        return ctypes.windll.shell32.IsUserAdmin()
-    except:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except Exception:
         return False
 
-
-def check_vcredist_installed(version="vs17"):
+def is_vcredist_installed_by_registry():
     try:
-        registry_path = [
-            r"SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64",
-            r"SOFTWARE\WOW6432Node\Microsoft\VisualStudio\14.0\VC\Runtimes\x64"
+        uninstall_paths = [
+            r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+            r"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
         ]
-
-        for path in registry_path:
-            try:
-                key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path)
-                installed, _ = winreg.QueryValueEx(key, "Installed")
-                major, _ = winreg.QueryValueEx(key, "Major")
-                minor, _ = winreg.QueryValueEx(key, "Minor")
-                winreg.CloseKey(key)
-
-                if installed == 1:
-                    if version == "vs17" and major >= 14 and minor >= 30:
-                        return True
-                    elif version == "vs16" and major >= 14 and minor >= 20:
-                        return True
-            except FileNotFoundError:
-                continue
-        return False
-    except Exception as e:
-        print(f"[-] Gagal memeriksa installasi vcredist: {e}")
-        return False
+        for base in uninstall_paths:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, base) as root:
+                for i in range(0, winreg.QueryInfoKey(root)[0]):
+                    try:
+                        subkey_name = winreg.EnumKey(root, i)
+                        sub = winreg.OpenKey(root, subkey_name)
+                        disp, _ = winreg.QueryValueEx(sub, "DisplayName")
+                        if "Visual C++" in str(disp):
+                            return True
+                    except FileNotFoundError:
+                        continue
+                    except OSError:
+                        continue
+    except Exception:
+        pass
+    return False
 
 def download_and_install_vcredist(version="vs17"):
     if not is_admin():
@@ -116,90 +115,105 @@ def detect_laragon_path():
     return None
 
 def get_latest_php_version():
-    # print("[*] Mengecek versi PHP terbaru dari windows.php.net")
-    # url = "https://www.windows.php.net/downloads/release/"
-    # r = requests.get(url)
-    # soup = BeautifulSoup(r.text, "html.parser")
-
-    # match = re.search(r"PHP (\d+\.\d+\.\d+)", soup.text)
-    # if match:
-    #     latest_version = match.group(1)
-    #     print(f"[✓] Versi PHP terbaru: {latest_version}")
-    #     return latest_version
-    # print("[-] Gagal mendapatkan versi PHP terbaru")
-    # return None
-
     url = "https://windows.php.net/downloads/releases/"
-    r = requests.get(url)
-    if r.status_code != 200:
-        print("❌ Gagal mengakses situs PHP Windows")
-        return {}
+    session = requests.Session()
+    retries = Retry(total=3, backoff_factor=0.3, status_forcelist=[500, 502, 503, 504])
+    session.mount("https://", HTTPAdapter(max_retries=retries))
+
+    try:
+        r = session.get(url, timeout=10)
+        r.raise_for_status()
+    except Exception as e:
+        print(f"❌ Gagal mengakses situs PHP Windows: {e}")
+        return {"8.4": ("8.4.14", "vs17")}
 
     soup = BeautifulSoup(r.text, "html.parser")
     versions = {}
 
     for a in soup.find_all("a", href=True):
-        href = a["href"]
-        if "x64" in href and href.endswith(".zip"):
-            m = re.search(r"php-(\d+\.\d+\.\d+)-Win32-(vs\d+)-x64\.zip", href)
-            if m:
-                full_ver, vs_ver = m.groups()
-                major = ".".join(full_ver.split(".")[:2])
-                if major not in versions or full_ver > versions[major][0]:
-                    versions[major] = (full_ver, vs_ver)
-
+      href = a["href"]
+      name = os.path.basename(href)
+      m = re.search(r"php-(\d+\.\d+\.\d+)-Win32-(vs\d+)-x64\.zip", name)
+      if m:
+          full_ver, vs_ver = m.groups()
+          major = ".".join(full_ver.split(".")[:2])
+          if major not in versions or full_ver > versions[major][0]:
+              versions[major] = (full_ver, vs_ver)
+    if not versions:
+        print("⚠️ Tidak menemukan versi PHP di halaman release; gunakan fallback.")
+        return {"8.4": ("8.4.1", "vs17")}
     return versions
 
-def get_local_php_version(laragon_path=None):
+def get_installed_php_version(laragon_path=None):
     if laragon_path is None:
         laragon_path = detect_laragon_path()
     if not laragon_path:
-        print("[-] Laragon tidak bisa ditemukan")
-        return None
+        return []
 
     php_dir = os.path.join(laragon_path, "bin", "php")
     if not os.path.exists(php_dir):
-        return None
+        return []
 
-    dirs = [d for d in os.listdir(php_dir) if d.startswith("php")]
-    if not dirs:
-        return None
+    dirs = [d for d in os.listdir(php_dir) if d.startswith('php')]
+    return sorted(dirs, reverse=True)
 
-    versions = sorted(dirs, reverse=True)
+def get_local_php_version(laragon_path=None):
+    versions = get_installed_php_version(laragon_path)
+    if not versions:
+        return None
     latest_local = versions[0].replace("php-", "")
     print(f"[✓] Versi PHP Lokal: {latest_local}")
     return latest_local
 
+def safe_extract_zip(zip_path, extract_to):
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        for member in zf.namelist():
+            member_path = os.path.normpath(os.path.join(extract_to, member))
+            if not member_path.startswith(os.path.abspath(extract_to)):
+                raise Exception("Attempted Path Traversal in Zip File")
+        zf.extractall(extract_to)
+
+
 def download_php(version, laragon_path):
-    print(f"[*] Mengunduh PHP {version} untuk windows")
-    major, minor, *_ = version.split(".")
-    major = int(major)
-    minor = int(minor)
+    compiler = "vs17" if (int(version.split('.')[0]) > 8 or (int(version.split('.')[0]) == 8 and int(version.split('.')[1]) >= 4)) else "vs16"
+    url = f"https://windows.php.net/downloads/releases/php-{version}-Win32-{compiler}-x64.zip"
+    print(f"[*] Menggunakan build: {compiler.upper()} | URL: {url}")
 
-    if major > 8 or (major == 8 and minor >= 4):
-        compiler = "vs17"
-    else:
-        compiler = "vs16"
+    temp_dir = tempfile.gettempdir()
+    filename = os.path.join(temp_dir, f"php-{version}.zip")
 
-
-    base_url = f"https://windows.php.net/downloads/releases/php-{version}-Win32-{compiler}-x64.zip"
-    print(f"[*] Menggunakan build: {compiler.upper()}")
-
-    r = requests.get(base_url, stream=True)
-
-    if r.status_code != 200:
-        print("[-] Gagal mengunduh file dari php.net, mungkin versi belum tersedia.")
-        print(f"[-] Coba cek URL manual: {base_url}")
+    try:
+        with requests.get(url, stream=True, timeout=30) as r:
+            r.raise_for_status()
+            total = int(r.headers.get('content-length', 0))
+            with open(filename, 'wb') as f, tqdm(total=total, unit='B', unit_scale=True, desc=f"Downloading PHP {version}") as pbar:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+    except Exception as e:
+        print(f"[-] Gagal mengunduh: {e}")
+        if os.path.exists(filename):
+            os.remove(filename)
         return False
 
     php_dir = os.path.join(laragon_path, "bin", "php", f"php-{version}")
     os.makedirs(php_dir, exist_ok=True)
 
-    with zipfile.ZipFile(BytesIO(r.content)) as zf:
-        zf.extractall(php_dir)
+    try:
+        safe_extract_zip(filename, php_dir)
+    except Exception as e:
+        print(f"[-] Gagal mengekstrak zip: {e}")
+        if os.path.exists(filename):
+            os.remove(filename)
+        return False
+    finally:
+        if os.path.exists(filename):
+            os.remove(filename)
 
     print(f"[✓] PHP {version} berhasil diinstal di: {php_dir}")
     return True
+
 
 def is_laragon_installed():
     laragon_path = detect_laragon_path()

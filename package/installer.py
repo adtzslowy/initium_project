@@ -93,12 +93,12 @@ def winget_install(package_id, fallback_url=None):
         return
 
     cmd = (
-        f"winget install --id={package_id}",
-        f"--source winget",
-        f"--silent",
-        f"--accept-package-agreements",
-        f"--accept-source-agreements",
-        f"-e",
+        f"winget install --id {package_id} "
+        "--source winget "
+        "--silent "
+        "--accept-package-agreements "
+        "--accept-source-agreements "
+        "-e"
     )
 
     print(f"\n🚀 Sedang menginstall: {package_id}")
@@ -111,31 +111,28 @@ def winget_install(package_id, fallback_url=None):
 
     try:
         process = subprocess.run(
-            [
-                "powershell",
-                "-Command",
-                f"Start-Process cmd -ArgumentList '/c {cmd}' -Verb RunAs"
-            ],
-            check=True
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
 
-    except subprocess.CalledProcessError:
+    finally:
         stop_event.set()
         progress_thread.join()
 
+    if process.returncode != 0:
         print(f"\n⚠️ Winget gagal menginstall {package_id}")
+        print(process.stderr)
+
         if fallback_url:
             print(f"🔗 Membuka fallback URL...")
             open_url(fallback_url)
+
         return
 
-    stop_event.set()
-    progress_thread.join()
-
     print(f"\n✅ {package_id} berhasil diinstall!")
-
-
-
 
 
 def open_url(url):

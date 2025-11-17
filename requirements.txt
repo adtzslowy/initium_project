@@ -2,5 +2,5 @@ pyfiglet
 rich
 requests
 beautifulsoup4
-gh_auto_updater
+gh-auto-updater
 urllib3<2

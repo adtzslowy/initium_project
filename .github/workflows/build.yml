@@ -1,47 +1,39 @@
 name: Build Initium CLI
+
 on:
   push:
     tags:
       - 'v*'
+
 jobs:
   build-windows:
     runs-on: windows-latest
+
     steps:
       - name: 🛒 Checkout repository
         uses: actions/checkout@v3
+
       - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - name: 📂 Debug – List Files
-        run: |
-          echo "List files in repository root:"
-          dir
+          python-version: "3.14"
+
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pyfiglet
           pip install pyinstaller
-          pip list
-      - name: 🔍 Get pyfiglet fonts path
-        id: get-fonts
-        shell: pwsh
+
+      - name: 🏗️ Build EXE with PyInstaller (One-File + Icon)
         run: |
-            $fontPath = python -c "import os, pyfiglet; print(os.path.join(os.path.dirname(pyfiglet.__file__), 'fonts'))"
-            echo "FONT_PATH=$fontPath" >> $env:GITHUB_ENV
-            echo "Detected FONT_PATH=$fontPath"
-      - name: 🏗️ Build executable with PyInstaller
-        shell: pwsh
-        run: |
-          # Update spec file dengan font path yang benar
-          $fontPath = $env:FONT_PATH -replace '\\', '\\\\'
-          $specContent = Get-Content initium.spec -Raw
-          $specContent = $specContent -replace 'FONT_PATH_PLACEHOLDER', $fontPath
-          $specContent | Set-Content initium.spec -NoNewline
-          # Build menggunakan spec file
-          pyinstaller initium.spec
-      - name: 🚀 Upload executable as artifact
+          pyinstaller initium.py ^
+            --onefile ^
+            --name initium ^
+            --icon=assets/initium.ico ^
+            --noconfirm ^
+            --clean
+
+      - name: 🚀 Upload executable
         uses: actions/upload-artifact@v4
         with:
           name: initium-windows
