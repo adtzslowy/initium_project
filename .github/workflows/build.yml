@@ -26,7 +26,7 @@ jobs:
 
       - name: 🏗️ Build EXE with PyInstaller (One-File + Icon)
         run: |
-          pyinstaller initium.py `
+          pyinstaller main.py `
             --onefile `
             --name initium `
             --icon=assets/initium.ico `
