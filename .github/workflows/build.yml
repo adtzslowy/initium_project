@@ -26,11 +26,11 @@ jobs:
 
       - name: 🏗️ Build EXE with PyInstaller (One-File + Icon)
         run: |
-          pyinstaller initium.py ^
-            --onefile ^
-            --name initium ^
-            --icon=assets/initium.ico ^
-            --noconfirm ^
+          pyinstaller initium.py `
+            --onefile `
+            --name initium `
+            --icon=assets/initium.ico `
+            --noconfirm `
             --clean
 
       - name: 🚀 Upload executable
