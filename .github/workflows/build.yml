@@ -24,14 +24,18 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
-      - name: 🏗️ Build EXE with PyInstaller (One-File + Icon)
+      - name: 🏗️ Build EXE
+        shell: pwsh
         run: |
+          $fontPath = python -c "import pyfiglet, os; import pathlib; print(os.path.join(pathlib.Path(pyfiglet.__file__).parent,'fonts'))"
+
           pyinstaller main.py `
             --onefile `
             --name initium `
             --icon=assets/initium.ico `
             --noconfirm `
-            --clean
+            --clean `
+            --add-data "$fontPath;pyfiglet/fonts"
 
       - name: 🚀 Upload executable
         uses: actions/upload-artifact@v4
