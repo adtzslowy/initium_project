@@ -264,7 +264,7 @@ def install_composer(os_type):
     composer_url = "https://getcomposer.org/Composer-Setup.exe"
     installer_path = "Composer-Setup.exe"
 
-    print(f"⬇️ Mengunduh {installer_path}...")
+    # === MULAI PROGRESS BAR ===
     stop_event = threading.Event()
     progress_thread = threading.Thread(
         target=run_progress_bar,
@@ -273,8 +273,19 @@ def install_composer(os_type):
     )
     progress_thread.start()
 
-    download_file_with_progress(composer_url, installer_path, stop_event)
-    progress_thread.join()
+    try:
+        download_file_with_progress(composer_url, installer_path)
+        print(f"\n✅ Download selesai: {installer_path}")
 
-    print(f"\n🚀 Menjalankan installer {installer_path}")
-    os.startfile(installer_path)
+    except Exception as e:
+        print(f"\n❌ Gagal mendownload Composer: {e}")
+
+    finally:
+        stop_event.set()
+        progress_thread.join()
+
+    if os.path.exists(installer_path):
+        print(f"🚀 Menjalankan installer {installer_path}")
+        os.startfile(installer_path)
+    else:
+        print("❌ Installer tidak ditemukan setelah download!")

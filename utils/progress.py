@@ -18,11 +18,11 @@ def run_progress_bar(stop_event, title="Processing"):
             time.sleep(0.05)
 
             if percentage < 40:
-                percentage += 2
-            elif percentage < 70:
-                percentage +=1
-            elif percentage < 95:
                 percentage += 0.5
+            elif percentage < 70:
+                percentage += 0.1
+            elif percentage < 95:
+                percentage += 0.01
             else:
                 percentage += 0.2
 
