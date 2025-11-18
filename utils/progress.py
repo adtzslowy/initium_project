@@ -1,5 +1,6 @@
 import time
 import threading
+import urllib
 from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
 
 def run_progress_bar(stop_event, title="Processing"):
@@ -32,3 +33,20 @@ def run_progress_bar(stop_event, title="Processing"):
 
         progress.update(task, completed=100)
         time.sleep(0.3)
+
+def download_file_with_progress(url, output, stop_event):
+    response = urllib.request.urlopen(url)
+    total_size = int(response.getheader("Content-Length").strip())
+    downloaded = 0
+    block_size = 8192
+
+    with open(output, "wb") as f:
+        while True:
+            chunk = response.read(block_size)
+            if not chunk:
+                break
+
+            f.write(chunk)
+            downloaded += len(chunk)
+
+    stop_event.set()

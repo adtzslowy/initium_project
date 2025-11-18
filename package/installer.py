@@ -7,7 +7,6 @@ import platform
 from .php_installer import (
     get_latest_php_version,
     get_local_php_version,
-    is_laragon_installed,
     download_php,
     detect_laragon_path,
 )
@@ -15,20 +14,7 @@ from utils.progress import run_progress_bar
 from utils.internet import is_winget_available
 from package.updater import self_update
 import asyncio
-
-def silent_install_windows(installer_path, silent_args="/S"):
-    if not os.path.exists(installer_path):
-        print(f"❌ File installer tidak ditemukan: {installer_path}")
-        return False
-
-    cmd = f"{installer_path} {silent_args}"
-    try:
-        subprocess.run(["powershell", "-Command", f"Start-Process cmd -ArgumentList '/c {cmd}' -Verb RunAs"], check=True)
-        print("✅ Installasi selesai")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"⚠️ Gagal menjalankan installer: {e}")
-        return False
+from utils.progress import download_file_with_progress
 
 def run_as_admin(cmd):
     try:
@@ -193,7 +179,6 @@ def install_xampp(os_type):
     open_url("https://www.apachefriends.org/index.html")
 
 
-
 def install_laragon(os_type):
 
     if os_type != "Windows":
@@ -203,13 +188,19 @@ def install_laragon(os_type):
     installer_name = "laragon-wamp.exe"
     installer_url = "https://github.com/leokhoa/laragon/releases/download/6.0.0/laragon-wamp.exe"
 
-    import urllib.request
-    print(f"⬇️ Mengunduh {installer_name} ...")
-    urllib.request.urlretrieve(installer_url, installer_name)
-    print(f"✅ {installer_name} berhasil diunduh!")
+    stop_event = threading.Event()
+    progress_thread = threading.Thread(
+        target=run_progress_bar,
+        args=(stop_event, "Mengunduh Laragon..."),
+        daemon=True
+    )
+    progress_thread.start()
 
-    print(f"🚀 Menginstall {installer_name} ...")
-    silent_install_windows(installer_name, "/S")
+    download_file_with_progress(installer_url, installer_name, stop_event)
+    progress_thread.join()
+
+    print(f"\n🚀 Menjalankan installer {installer_name}")
+    os.startfile(installer_name)
 
 
 
@@ -273,13 +264,17 @@ def install_composer(os_type):
     composer_url = "https://getcomposer.org/Composer-Setup.exe"
     installer_path = "Composer-Setup.exe"
 
-    try:
-        import urllib.request
+    print(f"⬇️ Mengunduh {installer_path}...")
+    stop_event = threading.Event()
+    progress_thread = threading.Thread(
+        target=run_progress_bar,
+        args=(stop_event, "Mengunduh Composer..."),
+        daemon=True
+    )
+    progress_thread.start()
 
-        urllib.request.urlretrieve(composer_url, installer_path)
-        print("✅ Composer installer berhasil di unduh")
+    download_file_with_progress(composer_url, installer_path, stop_event)
+    progress_thread.join()
 
-        print("🚀 Menjalankan installer Composer...")
-        os.startfile(installer_path)
-    except Exception as e:
-        print(f"❌ Gagal menginstall Composer: {e}")
+    print(f"\n🚀 Menjalankan installer {installer_path}")
+    os.startfile(installer_path)
