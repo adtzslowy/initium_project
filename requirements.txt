@@ -1,6 +1,0 @@
-pyfiglet
-rich
-requests
-beautifulsoup4
-gh-auto-updater
-urllib3<2
