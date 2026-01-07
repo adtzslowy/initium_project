@@ -1,4 +1,4 @@
-from initium.app import InitiumApp
+from src.initium.app import InitiumApp
 
 def main():
     app = InitiumApp()
