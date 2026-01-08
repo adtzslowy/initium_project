@@ -39,6 +39,10 @@ class Installer:
         Return true jika sukses, False jika gagal.
         """
         tool = self._get_tool(tool_key)
+
+        if self.pm.name == "mock":
+            return self.pm.install(tool_key)
+
         package_id = self._get_package_id(tool)
 
         if not package_id:
@@ -51,7 +55,7 @@ class Installer:
 
         return self.pm.install(package_id)
 
-    def _get_tool(self, tool_key: str) -> bool :
+    def _get_tool(self, tool_key: str) -> DevTool :
         try:
             return DEV_TOOLS[tool_key]
         except KeyError:
