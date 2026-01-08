@@ -35,12 +35,8 @@ def render_tools(app: InitiumApp):
     table.add_column("Tool", style="cyan", no_wrap=True)
     table.add_column("Description", style="white")
 
-    for
-
-    for
-
     for i, key in enumerate(tools, start=1):
-        info.app.get_tool_info(key)
+        info = app.get_tool_info(key)
         table.add_row(str(i), info["name"], info["description"])
 
     console.print(table)
