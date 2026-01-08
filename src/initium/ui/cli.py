@@ -6,6 +6,8 @@ from rich.status import Status
 from rich.panel import Panel
 from rich.align import Align
 
+import os
+
 from src.initium.app import InitiumApp
 
 console = Console()
@@ -48,12 +50,15 @@ def main():
     app = InitiumApp()
     tools = render_tools(app)
     
-    choice = Prompt.ask(
-        "\n[bold]Select tool number to install[/bold]",
-        choices=[str(i) for i in range(1, len(tools) + 1)]
-    )
+    if os.getenv("INITIUM_MODE") == "ci":
+        tool_key = tools[0]
+    else:
+        choice = Prompt.ask(
+            "[bold]select tool to install[/bold]",
+            choices=[str(i) for i in range(1, len(tools) + 1)]
+        )
+        tool_key = tools[int(choice) - 1]
 
-    tool_key = tools[int(choice) - 1]
     tool_info = app.get_tool_info(tool_key)
 
     console.print(
