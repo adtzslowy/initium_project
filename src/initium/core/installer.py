@@ -1,5 +1,6 @@
 from typing import Optional
 import platform
+import os
 
 from .package_manager.registry import DEV_TOOLS, DevTool
 from .package_manager.resolver import PackageManagerResolver
@@ -10,6 +11,12 @@ class Installer:
     Orchestrator untuk proses installasi dev dependencies.
     """
     def __init__(self, package_manager: Optional[BasePackageManager] = None):
+
+
+        if os.getenv("INITIUM_MODE") == "ci":
+            from .package_manager.mock import MockPackageManager
+            self.pm = MockPackageManager()
+            return
 
         current_os = platform.system()
         if current_os != "Windows":
