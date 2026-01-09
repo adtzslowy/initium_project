@@ -73,7 +73,7 @@ def main():
 
     # Choose mode
     if os.getenv("INITIUM_MODE") == "ci":
-        mode = "tools"
+        mode = "tool"
     else:
         mode = Prompt.ask(
             "[bold]Mau pilih installasi yang mana?[/bold]",
