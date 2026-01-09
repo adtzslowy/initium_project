@@ -7,7 +7,7 @@ from rich.align import Align
 
 import os
 
-from initium.core import preset
+from ..core.preset import PRESETS
 from src.initium.app import InitiumApp
 
 console = Console()
@@ -103,7 +103,7 @@ def main():
     if mode == "preset":
         presets = render_presets(app)
 
-        if os.getenv("INIITUM_MODE") == "ci":
+        if os.getenv("INITIUM_MODE") == "ci":
             preset_key = presets[0]
         else:
             choice = Prompt.ask(
