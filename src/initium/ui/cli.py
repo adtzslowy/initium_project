@@ -7,7 +7,6 @@ from rich.align import Align
 
 import os
 
-from ..core.preset import PRESETS
 from src.initium.app import InitiumApp
 
 console = Console()
