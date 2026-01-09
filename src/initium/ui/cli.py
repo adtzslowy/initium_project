@@ -15,7 +15,7 @@ console = Console()
 def render_header():
     header = Panel(
         Align.center(
-            "[bold cyan]Initium[/bold cyan]\n"
+            "[bold cyan]Initium[/bold cyan]\n",
             "[white]DEV DEPENDENCIES INSTALLER[/white]\n",
             vertical="middle"
         ),
