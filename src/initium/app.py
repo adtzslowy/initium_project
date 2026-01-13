@@ -76,3 +76,9 @@ class InitiumApp:
             except Exception:
                 result[tool_key] = False
         return result
+
+    def install_tool_with_log(self, tool_key: str, on_output):
+        tool = self.get_tool(tool_key)
+        package_id = self.installer._get_package_id(tool)
+
+        return self.installer.pm.install_with_log(package_id, on_output)

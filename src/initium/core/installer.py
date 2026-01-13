@@ -73,3 +73,12 @@ class Installer:
         if self.pm.name == "choco":
             return tool.choco
         return None
+
+    def install_with_log(self, tool_key: str, on_output):
+        tool = self._get_tool(tool_key)
+        package_id = self._get_package_id(tool)
+
+        if not package_id:
+            raise RuntimeError(f"{tool.name} is not supported by {self.pm.name}")
+
+        return self.pm.install_with_log(package_id, on_output)

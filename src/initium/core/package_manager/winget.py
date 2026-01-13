@@ -1,50 +1,65 @@
+from re import sub
 import subprocess
+from typing import Callable
+
 from .base import BasePackageManager
 
 class WingetPackageManager(BasePackageManager):
     @property
     def name(self) -> str:
         return "winget"
-
-    def is_available(self) -> bool:
+    
+    def is_installed(self, pacakge_id: str) -> bool:
         try:
             result = subprocess.run(
-                ["winget", "--version"],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=True
+                ["winget", "list", "--id", pacakge_id],
+                capture_output=True,
+                text=True
             )
-            return True
+            return pacakge_id.lower() in result.stdout.lower()
         except Exception:
             return False
 
-    def install(self, package_id: str) -> bool:
+    
+    # ------------------------------------------
+    # Silent Install (used by CI or Dry-run)
+    # ------------------------------------------
+    def install(self, pacakge_id: str) -> bool:
         try:
             result = subprocess.run(
-                [
-                    "winget",
-                    "install",
-                    "--id",
-                    package_id,
-                    "-e",
-                    "--accept-package-agreements",
-                    "--accept-source-agreements",
-                ],
-                check=True
+                ["winget", "install", "--id", pacakge_id, "-e", "--silent", "--accept-source-agreements", "--accept-package-agreements"],
+                capture_output=True,
+                text=True
             )
-            return True
-        except subprocess.CalledProcessError:
+            return result.returncode == 0
+        except Exception:
             return False
 
-    def is_installed(self, package_id: str) -> bool:
+    # ------------------------------------------
+    # Streaming install for UI
+    # ------------------------------------------
+    def install_with_log(self, package_id: str, on_output: Callable[[str], None]) -> bool:
         try:
-            result = subprocess.run(
-                ["winget", "list", "--id", package_id],
+            cmd = [
+                "winget", "install", "--id", package_id, "-e", "--accept-source-agreements", "--accept-package-agreements"
+            ]
+
+            process = subprocess.Popen(
+                cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT,
                 text=True,
-                check=True
+                bufsize=1
             )
-            return package_id.lower() in result.stdout.lower()
-        except Exception:
+
+            for line in process.stdout:
+                clean = line.strip()
+                if clean:
+                    on_output(clean)
+
+            process.wait()
+            return process.returncode == 0
+
+        except Exception as e:
+            on_output(str(e))
             return False

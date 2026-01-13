@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Callable
 
 class BasePackageManager(ABC):
     """
@@ -27,5 +28,13 @@ class BasePackageManager(ABC):
     def is_installed(self, pacakge_id: str) -> bool:
         """
         Cek apakah package sudah terinstall.
+        """
+        pass
+
+    @abstractmethod
+    def install_with_log(self, package_id: str, on_output: Callable[[str], None]) -> bool:
+        """
+        Install package and stream stdout/stderr
+        to UI via callback
         """
         pass
