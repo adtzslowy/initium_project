@@ -10,12 +10,14 @@ class Installer:
     """
     Orchestrator untuk proses installasi dev dependencies.
     """
-    def __init__(self, package_manager: Optional[BasePackageManager] = None):
+    def __init__(self, package_manager=None, dry_run: bool = False):
+        self.dry_run = dry_run
 
 
         if os.getenv("INITIUM_MODE") == "ci":
             from .package_manager.mock import MockPackageManager
             self.pm = MockPackageManager()
+            self.dry_run = True
             return
 
         current_os = platform.system()

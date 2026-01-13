@@ -10,8 +10,8 @@ class InitiumApp:
     UI / CLI hanya boleh berinteraksi lewat class ini.
     """
 
-    def __init__(self):
-        self.installer = Installer()
+    def __init__(self, dry_run: bool = False):
+        self.installer = Installer(dry_run=dry_run)
 
     def list_tools(self) -> List[str]:
         """
