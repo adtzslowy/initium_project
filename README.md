@@ -1,52 +1,95 @@
-# Initium
+# 🚀 Initium
 
-Initium is a simple and transparent CLI tool for installing common development
-dependencies on Windows using available package managers such as **winget**
-and **Chocolatey**.
+**Initium** adalah CLI tool untuk menginstall dan men-setup *development environment* di Windows secara otomatis.
 
-This project focuses on **clarity, safety, and maintainability** rather than
-hidden automation or system magic.
+Dengan satu perintah, kamu bisa:
+- Install Git, Node.js, Docker, VS Code, dll
+- Setup environment sesuai role (Backend, Fullstack, Web)
+- Melihat UI interaktif yang rapi
+- Menjalankan simulasi tanpa mengubah sistem (dry-run)
 
----
-
-## ✨ Features
-
-- Install common dev tools from a single CLI
-- Automatically selects available package manager (winget / choco)
-- Clean and readable CLI interface (powered by Rich)
-- CI-safe with mock mode
-- Minimal and predictable behavior
+> Initium = “Bootstrap environment developer dalam sekali jalan”
 
 ---
 
-## 🚧 Project Status
+## ✨ Fitur
 
-- **Early stage** (`v0.x`)
-- **Windows only** (for real installations)
-- Core architecture is stable
-- Features and UX may evolve
-
-Initium is currently intended for learning, experimentation, and internal use.
-
----
-
-## 🖥 Supported Platform
-
-| Platform | Status |
-|--------|--------|
-| Windows | ✅ Supported |
-| macOS  | ⚠️ Dev / CI only |
-| Linux  | ⚠️ Dev / CI only |
-
-> On macOS and Linux, Initium runs in **mock mode** for development and CI.
-> Actual system installation is Windows-only.
+- 🔧 Install dev tools via **Winget** atau **Chocolatey**
+- 📦 **Preset** untuk role developer
+- 🧪 **Dry-run mode** (lihat rencana install tanpa benar-benar menginstall)
+- 🎨 UI terminal modern (Rich)
+- 🤖 CI-safe (Mock mode)
 
 ---
 
-## 🚀 Usage
+## 📦 Tools yang didukung
 
-### Run locally
+| Tool | Deskripsi |
+|------|---------|
+| Git | Version control |
+| Node.js | JavaScript runtime |
+| Visual Studio Code | Code editor |
+| Docker Desktop | Container platform |
+| Postman | API testing |
+| XAMPP | PHP environment |
+| Laragon | Advanced PHP environment |
 
+---
+
+## 🧩 Preset
+
+| Preset | Tools |
+|-------|------|
+| **Backend Developer** | Git, Node.js, Docker, Postman |
+| **Fullstack Developer** | Git, Node.js, Docker, VS Code |
+| **Web Developer** | Git, Node.js, VS Code, Laragon |
+
+Preset membuat Initium terasa seperti:
+> “Setup environment sesuai pekerjaanmu”
+
+---
+
+## 🚀 Cara Menjalankan
+
+### 1. Clone repository
+```bash
+git clone https://github.com/adtzslowy/initium_project
+cd initium_project
+```
+
+### 2. Buat virtual environment
+```bash
+python -m venv venv
+.venv\Scripts\Activate.ps1
+```
+
+### 3. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Jalankan Initium
 ```bash
 python -m src.initium.ui.cli
+```
 
+## 🧪 Dry Run (Simulasi)
+```bash
+python -m src.initium.ui.cli --dry-run
+```
+
+### Output
+```bash
+This will install:
+- Git
+- Node.js
+- Docker
+- Postman
+
+No changes will be made.
+```
+
+## 🤖 CI Mode
+```bash
+INITIUM_MODE=ci python -m src.initium.ui.cli
+```
