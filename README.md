@@ -90,6 +90,17 @@ No changes will be made.
 ```
 
 ## 🤖 CI Mode
+Untuk melihat apa yang akan diinstall tanpa mengubah sistem:
 ```bash
 INITIUM_MODE=ci python -m src.initium.ui.cli
 ```
+Ini akan:
+1. Tidak benar-benar menginstall apa pun
+2. Tetap menampilkan alur dan UI
+
+## ⚠ Catatan
+1. Initium saat ini hanya mendukung Windows
+2. Beberapa tool (Docker, VS, dll) bisa memakan waktu beberapa menit karena installer resmi Windows
+
+## 📜 License
+MIT License
