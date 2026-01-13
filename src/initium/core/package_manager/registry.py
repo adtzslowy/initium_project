@@ -45,5 +45,19 @@ DEV_TOOLS: Dict[str, DevTool] = {
         description="Advanced PHP dev environment (with license required for latest version)",
         winget="LeNgocKhoa.Laragon",
         choco="laragon"
-    )
+    ),
+    "docker": DevTool(
+        key="docker",
+        name="Docker Desktop",
+        description="Container platform for building and running applications",
+        winget="Docker.DockerDesktop",
+        choco="docker-desktop",
+    ),
+    "postman": DevTool(
+        key="postman",
+        name="Postman",
+        description="API testing and Development tool",
+        winget="Postman.Postman",
+        choco="postman"
+    ),
 }
