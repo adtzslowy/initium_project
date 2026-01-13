@@ -1,3 +1,7 @@
+import os
+import sys
+import ctypes
+
 from rich.console import Console
 from rich.table import Table
 from rich.prompt import Prompt
@@ -5,11 +9,33 @@ from rich.status import Status
 from rich.panel import Panel
 from rich.align import Align
 
-import os
-
 from ..app import InitiumApp
 
 console = Console()
+
+
+# =========================
+# ADMIN DETECTION
+# =========================
+
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+
+def relaunch_as_admin():
+    params = " ".join([f'"{arg}"' for arg in sys.argv])
+    ctypes.windll.shell32.ShellExecuteW(
+        None,
+        "runas",
+        sys.executable,
+        params,
+        None,
+        1
+    )
+    sys.exit(0)
 
 
 # =========================
@@ -29,15 +55,14 @@ def render_header():
     console.print(header)
 
 
-def run_with_ui(label: str, action):
-    """
-    Run an action with Rich UI.
-    In CI mode, UI is disabled automatically.
-    """
-    if os.getenv("INITIUM_MODE") == "ci":
+def run_with_ui(label: str, action, dry_run=False):
+    if os.getenv("INITIUM_MODE") == "ci" or dry_run:
         return action()
 
-    with Status(f"[bold cyan]{label}[/bold cyan]", spinner="dots"):
+    with Status(
+        f"[bold cyan]{label}[/bold cyan]\n[dim]This may take several minutes...[/dim]",
+        spinner="dots"
+    ):
         return action()
 
 
@@ -48,12 +73,7 @@ def run_with_ui(label: str, action):
 def render_tools(app: InitiumApp):
     tools = app.list_tools()
 
-    table = Table(
-        title="Available Tools",
-        header_style="bold magenta",
-        box=None
-    )
-
+    table = Table(title="Available Tools", header_style="bold magenta", box=None)
     table.add_column("No", justify="right", style="bold")
     table.add_column("Tool", style="cyan", no_wrap=True)
     table.add_column("Description", style="white")
@@ -69,12 +89,7 @@ def render_tools(app: InitiumApp):
 def render_presets(app: InitiumApp):
     presets = app.list_presets()
 
-    table = Table(
-        title="Available Presets",
-        header_style="bold magenta",
-        box=None
-    )
-
+    table = Table(title="Available Presets", header_style="bold magenta", box=None)
     table.add_column("No", justify="right", style="bold")
     table.add_column("Preset", style="cyan", no_wrap=True)
     table.add_column("Description", style="white")
@@ -92,12 +107,34 @@ def render_presets(app: InitiumApp):
 # =========================
 
 def main():
-    render_header()
-    app = InitiumApp()
+    dry_run = "--dry-run" in sys.argv
 
-    # -------------------------
+    # Auto-elevate on Windows
+    if os.name == "nt" and not is_admin() and os.getenv("INITIUM_MODE") != "ci":
+        console.print(
+            Panel(
+                "[yellow]Initium requires Administrator privileges to install system tools.[/yellow]\n"
+                "Please approve the UAC prompt.",
+                title="Elevation Required",
+                border_style="yellow"
+            )
+        )
+        relaunch_as_admin()
+        return
+
+    render_header()
+
+    if dry_run:
+        console.print(
+            Panel(
+                "[yellow]DRY-RUN MODE: No changes will be made[/yellow]",
+                border_style="yellow"
+            )
+        )
+
+    app = InitiumApp(dry_run=dry_run)
+
     # Choose mode
-    # -------------------------
     if os.getenv("INITIUM_MODE") == "ci":
         mode = "tool"
     else:
@@ -125,18 +162,16 @@ def main():
         tool_info = app.get_tool_info(tool_key)
 
         console.print(
-            Panel(
-                f"[bold]Installing:[/bold] {tool_info['name']}",
-                border_style="cyan"
-            )
+            Panel(f"[bold]Installing:[/bold] {tool_info['name']}", border_style="cyan")
         )
 
-        success = run_with_ui(
+        ok = run_with_ui(
             f"Installing {tool_info['name']}",
-            lambda: app.install_tool(tool_key)
+            lambda: app.install_tool(tool_key),
+            dry_run=dry_run
         )
 
-        if success:
+        if ok:
             console.print(f"[green]✔ {tool_info['name']} installed[/green]")
         else:
             console.print(f"[red]✖ Failed to install {tool_info['name']}[/red]")
@@ -175,17 +210,18 @@ def main():
 
             ok = run_with_ui(
                 f"Installing {tool_info['name']}",
-                lambda k=tool_key: app.install_tool(k)
+                lambda k=tool_key: app.install_tool(k),
+                dry_run=dry_run
             )
 
             results[tool_key] = ok
 
-        success_count = sum(1 for ok in results.values() if ok)
+        success = sum(1 for ok in results.values() if ok)
         total = len(results)
 
         console.print(
             Panel(
-                f"[green]{success_count}/{total} tools installed successfully[/green]",
+                f"[green]{success}/{total} tools installed successfully[/green]",
                 title="Done",
                 border_style="green"
             )
@@ -196,3 +232,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
