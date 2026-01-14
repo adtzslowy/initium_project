@@ -14,7 +14,7 @@ from rich.live import Live
 from ..app import InitiumApp
 
 console = Console()
-logs = []
+
 
 
 # =========================
@@ -108,6 +108,9 @@ def render_presets(app: InitiumApp):
 # =========================
 # Live CLI interactive
 # =========================
+
+tool_info = app.get_tool_info(tool_key)
+logs = []
 
 def on_log(line):
     logs.append(line)
